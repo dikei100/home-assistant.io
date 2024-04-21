@@ -113,14 +113,15 @@ Here are some real-life examples of how to use the **turn_off** variable.
 Suggested recipe for letting the `turn_off` script suspend a Linux computer (the **target**)
 from Home Assistant running on another Linux computer (the **server**).
 
-1. On the **server**, log in as the user account Home Assistant is running under. In this example it's `hass`.
-2. On the **server**, create SSH keys by running `ssh-keygen`. Just press enter on all questions.
-3. On the **target**, create a new account that Home Assistant can ssh into: `sudo adduser hass`. Just press enter on all questions except password. It's recommended using the same user name as on the server. If you do, you can leave out `hass@` in the SSH commands below.
-4. On the **server**, transfer your public SSH key by `ssh-copy-id hass@TARGET` where TARGET is your target machine's name or IP address. Enter the password you created in step 3.
-5. On the **server**, verify that you can reach your target machine without password by `ssh TARGET`.
-6. On the **target**, we need to let the `hass` user execute the program needed to suspend/shut down the target computer. Here is it `pm-suspend`, use `poweroff` to turn off the computer. First, get the full path: `which pm-suspend`. On my system, this is `/usr/sbin/pm-suspend`.
-7. On the **target**, using an account with sudo access (typically your main account), `sudo visudo`. Add this line last in the file: `hass ALL=NOPASSWD:/usr/sbin/pm-suspend`, where you replace `hass` with the name of your user on the target, if different, and `/usr/sbin/pm-suspend` with the command of your choice, if different.
-8. On the **server**, add the following to your configuration, replacing TARGET with the target's name:
+1. On the **server/Homeassistant**, log in as the user account Home Assistant is running under. In this example it's `hass`. You can also use an addon like "Advanced SSH & Web Terminal" to access the terminal.
+2. On the **server/Homeassistant**, create SSH keys by running `ssh-keygen`. Just press enter on all questions. You do not need to create a password for the keys.
+3. On the **server/Homeassistant**, copy the newly generated keys from /root/.ssh/ to /config/.ssh, for example by typing in the terminal 'cp /root/.ssh/id_edxxxxx /config/.ssh/' and 'cp /root/.ssh/id_edxxxxx.pub /config/.ssh/' (replace id_edxxxxx with the name of the newly generated keys!).
+4. (optional) On the **target/your computer**, create a new account that Home Assistant can ssh into: `sudo adduser hass`. Just press enter on all questions except password. It's recommended using the same user name as on the server. If you do, you can leave out `hass@` in the SSH commands below.
+5. On the **server/Homeassistant**, transfer your public SSH key by `ssh-copy-id USERNAME@TARGET` where USERNAME is the username on your target/computer and TARGET is your target/computers machine's name or IP address. You can either use a user that already exists on the target/computer or the one you just created in step 4. Enter the users password or, if you created a new user, the password you created in step 4.
+6. On the **server/Homeassistant**, verify that you can reach your target machine without password by `ssh USER@TARGET-IP-Adress`, for example 'ssh hass@192.168.156.123'. To close the ssh connection, type 'exit' and press enter.
+7. On the **target/your computer**, we need to let the user execute the program needed to suspend/shut down the target computer. Here it is `systemctl`.
+8. On the **target/your computer**, using an account with sudo access (typically your main account), `sudo visudo`. Add this line to the bottom of the file: `USER ALL=NOPASSWD:/usr/sbin/systemctl`.
+9. On the **server/Homeassistant**, add the following to your configuration, replacing TARGET with the target's name:
 
 ```yaml
 switch:
@@ -131,8 +132,10 @@ switch:
       service: shell_command.turn_off_TARGET
 
 shell_command:
-  turn_off_TARGET: "ssh hass@TARGET sudo pm-suspend"
+  turn_off_TARGET: "ssh -i /config/.ssh/id_edxxxxx -o 'StrictHostKeyChecking=no' USER@TARGETS-IP-ADRESS sudo systemctl suspend" # (dont forget to change USER to the username of your targets machine and TARGETS-IP-ADRESS to the IP-adress of the target machine! Also change id_edxxxxx to the name of your keys-file, without the .pub!)
 ```
+
+If you wish, you can replace 'suspend' with other systemctl commands.
 
 ## Helper button with automation
 
